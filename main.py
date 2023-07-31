@@ -5,7 +5,7 @@ import openai
 from googletrans import Translator
 import threading
 
-
+#v1.1.0
 
 
 class CalculatorApp(UserControl):
