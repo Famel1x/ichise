@@ -1,5 +1,9 @@
 from flet import *
 import random
+import pyperclip
+import openai
+from googletrans import Translator
+import threading
 
 
 
@@ -275,11 +279,42 @@ class CalculatorApp(UserControl):
 
 def main(page: Page):
     page.title = "Обучение 24.07.23 ichise edition"
-    page.window_width = 910
-    page.window_height = 410
-    page.window_left = 400
-    page.window_top = 200 
+    page.window_width = 1700
+    page.window_height =800
 
+
+
+    openai.api_key = "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"
+
+
+    translator = Translator(service_urls=['translate.googleapis.com'])
+    gpt_result = ""
+
+
+
+    def askGPT(e):
+        text  = f"Прочитайте сообщение клиента. Составьте ответ, который сможет повысить лояльность клиента от имени техподержки. Сообщение: {gptVopros.value} . написать {gptDlinna.value} слов"
+        print("Мыслим....")
+        textEn = translator.translate(text = text, dest = "en")
+        print("переведено!")
+
+        completion = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": textEn.text}])
+        
+        print("Получили ответ")
+
+        answer = translator.translate(text = f"{completion.choices[0].message.content}", dest = "ru")
+        print("переведено!")
+        gpt_result = answer.text
+        gptOtvet.value = gpt_result
+        print("Вставленно!")
+        page.update()
+    
+
+    def thre(e):
+        f = threading.Thread(target=askGPT)
+        f.start()
 
     def button_clicked(e):
         try:
@@ -296,19 +331,45 @@ def main(page: Page):
 
             razn_text.value = f"{razn}"
             za_1kg_text.value = f"{za_1Kg}"
+            pyperclip.copy(razn)
             page.update()
         except :
             pass
 
-    
+    def copy(dans:str):
+        pyperclip.copy(dans)
 
 
     
+    
+    #GPT-ответы
+    gptVopros = TextField(
+                        multiline=True,
+                        min_lines=1,
+                        bgcolor=colors.GREY_400, 
+                        color= colors.BLACK,
+                        border=InputBorder.UNDERLINE,
+                        width= 300,
+                        text_align="center",)
+    gptDlinna = TextField(
+                        bgcolor=colors.GREY_400, 
+                        color= colors.BLACK,
+                        border=InputBorder.UNDERLINE,
+                        width= 60,
+                        text_align="center",)
+    gptOtvet = TextField(
+                    multiline=True,
+                    min_lines=1,
+                    bgcolor=colors.GREY_400, 
+                    color= colors.BLACK,
+                    border=InputBorder.UNDERLINE,
+                    width=450,
+                    )
+
         
-        
+    #Конвертер:
     za_1kg_text = Text()
-    razn_text = Text()   
-
+    razn_text = Text()      
     zakazal = TextField(
                         
                         bgcolor=colors.GREY_400, 
@@ -318,7 +379,6 @@ def main(page: Page):
                         text_align="center",
                         
                         )
-    
     dolzhen = TextField(
                         
                         bgcolor=colors.GREY_400, 
@@ -327,8 +387,7 @@ def main(page: Page):
                         width=80,
                         text_align="center",
 
-                        )
-    
+                        )    
     poluchil = TextField(
                             
                         bgcolor=colors.GREY_400, 
@@ -336,8 +395,7 @@ def main(page: Page):
                         border=InputBorder.UNDERLINE,
                         width=80,
                         text_align="center"
-                        )
-    
+                        )   
     zaplatil = TextField(
                         
                         bgcolor=colors.GREY_400, 
@@ -350,13 +408,19 @@ def main(page: Page):
     # create application instance
     calc = CalculatorApp()
 
-
+    gpt_result = " "
     # add application's root control to the page
     page.add(
         Column([
             Row([
+                
+                #Калькулятор
                 calc, 
-                Container(width=50),
+                
+                #Блок разделений
+                Container(width=5),
+                
+                #Конвертер
                 Container(
                     width=500,
                     height=350,
@@ -419,10 +483,14 @@ def main(page: Page):
                                             Text("Изменение цены: "),
                                             razn_text
                                         ]),
-                                        ElevatedButton(
-                                            text = "Расчитать",
-                                            on_click=button_clicked
-                                        ),
+                                        Column([
+                                            ElevatedButton(
+                                                text = "Расчитать",
+                                                on_click=button_clicked
+                                            ),
+                                           
+                                        ]),
+                                        
                                         
                                         
                                     ]),
@@ -433,10 +501,63 @@ def main(page: Page):
                         ]
                     )
                     
+                ), 
+                Container(
+                    width=830,
+                    height=600,
+                    bgcolor="black",
+                    border_radius=10,
+                    content=Column(
+                        controls=[
+                            Container(
+                                Row([
+                                    Text(""),
+                                    Column([
+                                        Text("Если самому лень писать ответы то воспользуйся этим ↓"),
+
+                                    ]),
+                                    Text("Введите количесвто слов: ", color=colors.PINK_200),
+                                    gptDlinna,
+                                    ElevatedButton(
+                                                text = "Получить ответ",
+                                                on_click=askGPT
+                                            ),
+                                    
+                                ]),
+                                
+                                
+                            ),
+                            Column([
+                                Row([
+                                    Text(""),
+                                    Column([
+                                        Text("Напиши текст сообщения: "),
+                                        gptVopros
+                                    ]),
+                                    Container(width=30),
+                                    Column([
+                                        Text("Ответ займёт от 1 до 3х минут в зависимости от интернета"),
+                                        gptOtvet
+                                    ])
+                                    
+                                ])
+                                
+                            ]),
+                            
+                        ]
+                    )
+
                 )
                 
                     
             ]),
+            Row([
+
+                #Контейнер для генерации ответов если самим лень писать
+                
+
+
+            ])
             
         ])
         

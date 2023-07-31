@@ -1,21 +1,19 @@
-from flet_multi_page import subPage
-import flet
-import random
+import openai
 
-def second_target (page:flet.Page): #? This is the target function of the second page.
-    colors = ["blue", "pink", "black", "red", "green"]
-    page.bgcolor = random.choice(colors)
-    page.add(flet.Text("Hello new page!", color="white"))
-    page.update()
+openai.api_key = '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'
 
-def main (page:flet.Page):
-    def start_new_page (e):
-        p = subPage(target=second_target) #! This is the "subPage" class.
-        p.start() #! This will run and start the second page.
-    
-    page.add(flet.ElevatedButton("start new page", on_click=start_new_page))
-    page.update()
+def is_api_key_valid():
+    try:
+        response = openai.Completion.create(
+            engine="davinci",
+            prompt="This is a test.",
+            max_tokens=5
+        )
+    except:
+        return False
+    else:
+        return True
 
-
-if __name__ == "__main__": #? This is so important, there will be errors without it.
-    flet.app(target=main)
+# Check the validity of the API key
+api_key_valid = is_api_key_valid()
+print("API key is valid:", api_key_valid)
