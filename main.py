@@ -4,8 +4,11 @@ import pyperclip
 import openai
 from googletrans import Translator
 import threading
+from datetime import datetime 
+import time
+from pytz import timezone
 
-#v1.1.0
+
 
 
 class CalculatorApp(UserControl):
@@ -274,8 +277,9 @@ class CalculatorApp(UserControl):
         self.new_operand = True
 
 
-
-
+ones_refresh = True
+validation = False
+blizTimeToOtdih = ""
 
 def main(page: Page):
     page.title = "Обучение 24.07.23 ichise edition"
@@ -284,13 +288,13 @@ def main(page: Page):
 
 
 
-    openai.api_key = "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"
+    openai.api_key = "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"
 
 
     translator = Translator(service_urls=['translate.googleapis.com'])
     gpt_result = ""
 
-
+    
 
     def askGPT(e):
         text  = f"Прочитайте сообщение клиента. Составьте ответ, который сможет повысить лояльность клиента от имени техподержки. Сообщение: {gptVopros.value} . написать {gptDlinna.value} слов"
@@ -311,6 +315,107 @@ def main(page: Page):
         print("Вставленно!")
         page.update()
     
+    def cikleTime():
+            global ones_refresh
+            while True:
+                ones_refresh = False
+                
+                
+                now = datetime.now() 
+                current_time = now.strftime("%H:%M:%S") 
+                
+                moscow = timezone('Europe/Moscow')
+                moscowTime = datetime.now(moscow)
+
+                moscow_time = moscowTime.strftime("%H:%M:%S")
+                print("Moscow Time =", moscow_time, " Current Time =", current_time)
+
+                moscow_hour = moscowTime.hour
+                moscow_min = moscowTime.minute
+                moscow_sec = moscowTime.second
+
+                
+                
+                def validate_time(alarm_time):
+                    global validation
+                    if validation == False:
+                        if len(alarm_time)!= 8:
+                            return False
+                        else:
+                            if int(alarm_time[0:2]) >23:
+                                return False
+                            elif int(alarm_time[3:5]) >59:
+                                return False
+                            elif int(alarm_time[6:8]) >59:
+                                return False
+                            else:
+                                validation = True
+                                print("Время валид")
+                                count_down()
+                                return True
+                    else:
+                        count_down()
+                        return True
+                
+                alarm_time = firsPer
+
+                alarm_hour = int(alarm_time[0:2])
+                alarm_min = int(alarm_time[3:5])
+                alarm_sec = int(alarm_time[6:8])
+
+                def count_down():
+                    global blizTimeToOtdih
+                    hour = int(alarm_hour) - int(moscow_hour)
+                    min = int(alarm_min) - int(moscow_min)
+                    sec = int(alarm_sec) - int(moscow_sec)
+                    
+                    if sec < 0:
+                        min -= 1
+                        sec += 60
+                    if min < 0: 
+                        hour -= 1
+                        min +=60
+                    
+                    
+                    blizTimeToOtdih =  (f"{hour}:{min}:{sec}")
+                   
+
+                
+
+                
+                if validate_time(alarm_time) == True:
+                    global validation
+                    if validation ==False:
+                        print("Уведомление о постановке на будильник")
+
+                    if alarm_hour == moscow_hour:
+                        if alarm_min == moscow_min:
+                            if alarm_sec == moscow_sec:
+                                print("Перерыв")
+                
+                else:
+                    print("Время не верное")
+
+                    
+                curTimeText.value = current_time
+                mosTimeText.value = moscow_time
+                blizTimeToOtdihText.value = blizTimeToOtdih
+
+                
+
+                page.update()
+                time.sleep(1)
+    
+    
+    def curentTime(e):
+        global ones_refresh
+        
+        if ones_refresh == True:
+            
+            t = threading.Thread(target=cikleTime)
+            t.start()
+        
+        
 
     def thre(e):
         f = threading.Thread(target=askGPT)
@@ -339,9 +444,38 @@ def main(page: Page):
     def copy(dans:str):
         pyperclip.copy(dans)
 
+    mosTimeText = Text("None")
+    curTimeText = Text("None")
+    blizTimeToOtdihText  = Text("None",color = colors.PINK_200)
 
+
+    #перерывы
+
+    firsPer = "21:00:00"
+    secPer = "None"
+    thridPer = "None"
     
+
+    firsPer_text = Text(f"1) {firsPer}")
+    secPer_text = Text(f"2) {secPer}")
+    thridPer_text = Text(f"3) {thridPer}")
     
+    nomerPer = TextField(
+                        bgcolor=colors.GREY_400, 
+                        color= colors.BLACK,
+                        border=InputBorder.UNDERLINE,
+                        width= 60,
+                        text_align="center",
+                        value="30")
+    addPer = TextField(
+                        bgcolor=colors.GREY_400, 
+                        color= colors.BLACK,
+                        border=InputBorder.UNDERLINE,
+                        width= 60,
+                        text_align="center",
+                        value="30")
+
+
     #GPT-ответы
     gptVopros = TextField(
                         multiline=True,
@@ -356,7 +490,8 @@ def main(page: Page):
                         color= colors.BLACK,
                         border=InputBorder.UNDERLINE,
                         width= 60,
-                        text_align="center",)
+                        text_align="center",
+                        value="30")
     gptOtvet = TextField(
                     multiline=True,
                     min_lines=1,
@@ -407,28 +542,115 @@ def main(page: Page):
 
     # create application instance
     calc = CalculatorApp()
-
+    
     gpt_result = " "
     # add application's root control to the page
     page.add(
         Column([
             Row([
+                #
+                Column([
+                    Container(#всё что связано с временем
+                        width=300,
+                        height=200,
+                        bgcolor="black",
+                        border_radius=10,
+                        content= Column([
+                                    
+                                    IconButton(
+                                        
+                                        icon= icons.REFRESH,
+                                        on_click=curentTime
+                                    ),
+                                    Row([
+                                        Container(width=10),
+                                        Text("Ваше время: "),
+                                        curTimeText
+                                    ]),
+                                    Row([ 
+                                        Container(width=10),
+                                        Text("Московсое время: "),
+                                        mosTimeText
+                                    ]),
+                                    Row([
+                                        Container(width=10),    
+                                        Text("До ближайшего перерыва: ", color=colors.PINK_200,),
+                                        blizTimeToOtdihText
+                                    ]),
+                                    ])
+                            
+                    ),
+                    #Калькулятор
+                    calc, 
+                ]),
+
                 
-                #Калькулятор
-                calc, 
+                
                 
                 #Блок разделений
                 Container(width=5),
-                
-                #Конвертер
-                Container(
-                    width=500,
-                    height=350,
-                    bgcolor="black",
-                    border_radius=10,
-                    content= Column(
-                        controls=[
-                            Container(
+                #Блок с перерывами
+                Column([
+                    Row([
+                       Container(
+                        width=245,
+                        height=200,
+                        bgcolor="black",
+                        border_radius=10,
+                        content=Column([
+                            Container(width=10),
+                            Row([
+                                Container(width=10),
+                                Text("Список перерывов: "),
+                            ]),
+                            Row([
+                                Container(width=10),
+                                firsPer_text,
+                            ]),
+                            Row([
+                                Container(width=10),
+                                secPer_text,
+                            ]),
+                            Row([
+                                Container(width=10),
+                                thridPer_text,
+                            ]),
+
+                        ])
+                        #Блок с изменениями перерывов
+                        ),  
+                        Container(
+                            width=245,
+                            height=200,
+                            bgcolor="black",
+                            border_radius=10,
+                            content=Column([
+                                Container(width=10),
+                                Row([
+                                    Container(width=10),
+                                    Text("Изменить перерыв: ")
+                                ]),
+                                Row([
+                                    Container(width=10),
+                                    Text("Изменить перерыв: ")
+                                ]),
+                                Row([
+                                    Container(width=10),
+                                    Text("Изменить перерыв: ")
+                                ]),
+
+
+                            ])
+                        ), 
+                    ]),
+                    Container(#Конвертер
+                        width=500,
+                        height=350,
+                        bgcolor="black",
+                        border_radius=10,
+                        content= Column(
+                            controls=[
+                                Container(
                                 Row([
                                     Text(""),
                                     Column([
@@ -440,8 +662,8 @@ def main(page: Page):
                                 
                                 
                             ),
-                            Column(
-                                [   Container(
+                                    Column(
+                                    [   Container(
                                         height=20
                                     ),
                                     Row([
@@ -501,7 +723,12 @@ def main(page: Page):
                         ]
                     )
                     
-                ), 
+                ),
+                    
+                ]),
+                
+                 
+                #Контейнер для генерации ответов если самим лень писать
                 Container(
                     width=830,
                     height=600,
@@ -516,7 +743,7 @@ def main(page: Page):
                                         Text("Если самому лень писать ответы то воспользуйся этим ↓"),
 
                                     ]),
-                                    Text("Введите количесвто слов: ", color=colors.PINK_200),
+                                    Text("Введите количесвто слов: ", color=colors.PINK_200,),
                                     gptDlinna,
                                     ElevatedButton(
                                                 text = "Получить ответ",
@@ -548,12 +775,11 @@ def main(page: Page):
                     )
 
                 )
-                
                     
-            ]),
+             ]),
             Row([
-
-                #Контейнер для генерации ответов если самим лень писать
+                
+                
                 
 
 
@@ -565,6 +791,7 @@ def main(page: Page):
 
 
     #horny?
-
+    
+    
 
 app(target=main)
