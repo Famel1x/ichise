@@ -8,7 +8,7 @@ from datetime import datetime
 import time
 from pytz import timezone
 
-
+#v1.2.0 pre-relise
 
 
 class CalculatorApp(UserControl):
