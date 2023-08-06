@@ -8,7 +8,7 @@ from datetime import datetime
 import time
 from pytz import timezone
 
-#v1.2.0 pre-relise
+
 
 
 class CalculatorApp(UserControl):
@@ -281,6 +281,9 @@ ones_refresh = True
 validation = False
 blizTimeToOtdih = ""
 
+zamen = 0
+
+
 def main(page: Page):
     page.title = "Обучение 24.07.23 ichise edition"
     page.window_width = 1700
@@ -317,6 +320,7 @@ def main(page: Page):
     
     def cikleTime():
             global ones_refresh
+            global zamen
             while True:
                 ones_refresh = False
                 
@@ -356,12 +360,24 @@ def main(page: Page):
                     else:
                         count_down()
                         return True
+                    
                 
-                alarm_time = firsPer
+                
+                
+                if zamen == 0:
+                    alarm_time = firsPer_text.value
+                    zamen +=1
+                try:
+                    alarm_hour = int(alarm_time[0:2])
+                    alarm_min = int(alarm_time[3:5])
+                    alarm_sec = int(alarm_time[6:8])
+                except:
+                    pass
 
-                alarm_hour = int(alarm_time[0:2])
-                alarm_min = int(alarm_time[3:5])
-                alarm_sec = int(alarm_time[6:8])
+                
+                                
+
+
 
                 def count_down():
                     global blizTimeToOtdih
@@ -369,12 +385,14 @@ def main(page: Page):
                     min = int(alarm_min) - int(moscow_min)
                     sec = int(alarm_sec) - int(moscow_sec)
                     
+                    
                     if sec < 0:
                         min -= 1
                         sec += 60
                     if min < 0: 
                         hour -= 1
                         min +=60
+                    
                     
                     
                     blizTimeToOtdih =  (f"{hour}:{min}:{sec}")
@@ -388,10 +406,18 @@ def main(page: Page):
                     if validation ==False:
                         print("Уведомление о постановке на будильник")
 
-                    if alarm_hour == moscow_hour:
-                        if alarm_min == moscow_min:
-                            if alarm_sec == moscow_sec:
-                                print("Перерыв")
+                    if alarm_hour == moscow_hour or int(alarm_hour) < 0:
+                        if alarm_min == moscow_min or int(alarm_min) < 0:
+                            if alarm_sec == moscow_sec or int(alarm_sec) < 0:
+                                if zamen == 1:
+                                    alarm_time = secPer_text.value
+                                    zamen +=1
+                                elif zamen == 2:
+                                    alarm_time = thridPer_text.value
+                                    zamen +=0
+                                else:
+                                    blizTimeToOtdihText.value = "Все перерывы кончились"
+
                 
                 else:
                     print("Время не верное")
@@ -444,36 +470,73 @@ def main(page: Page):
     def copy(dans:str):
         pyperclip.copy(dans)
 
+    
+
+    def change_pererivs(e):
+        nomer = int(nomerPer.value)
+        newper = addPer.value
+
+        if nomer == 1:
+            firsPer_text.value  = newper
+            print(f"1 Перерыв заменён на {addPer.value}")
+            
+        elif nomer == 2:
+            secPer_text.value  = newper
+            print(f"2 Перерыв заменён на {addPer.value}")
+            
+        elif nomer == 3:
+            thridPer_text.value  = newper
+            print(f"3 Перерыв заменён на {addPer.value}")
+            
+        else:
+            print("Худо")
+            print(nomer)
+
+        page.update()
+
+
+
     mosTimeText = Text("None")
     curTimeText = Text("None")
     blizTimeToOtdihText  = Text("None",color = colors.PINK_200)
 
 
     #перерывы
+    with open('config.ini', 'r') as v:   #автоматически открывает и закрывает файл, как по мне более удобная вещь, чем в ручную все делать
+        a = v.read().split('\n')
+    
+    firsPer = str(a[0])
+    secPer = str(a[1])
+    thridPer = str(a[2])
 
-    firsPer = "21:00:00"
-    secPer = "None"
-    thridPer = "None"
+
+
     
 
-    firsPer_text = Text(f"1) {firsPer}")
-    secPer_text = Text(f"2) {secPer}")
-    thridPer_text = Text(f"3) {thridPer}")
+    firsPer_status_text = Text("")
+    secPer_status_text = Text("")
+    thridPer_status_text = Text("")
+
+    firsPer_text = Text(firsPer)
+    secPer_text = Text(secPer)
+    thridPer_text = Text(thridPer)
     
+    addPer = TextField(
+                        bgcolor=colors.GREY_400, 
+                        color= colors.BLACK,
+                        border=InputBorder.UNDERLINE,
+                        width= 120,
+                        height=30,
+                        text_align="START",)
+
     nomerPer = TextField(
                         bgcolor=colors.GREY_400, 
                         color= colors.BLACK,
                         border=InputBorder.UNDERLINE,
                         width= 60,
-                        text_align="center",
-                        value="30")
-    addPer = TextField(
-                        bgcolor=colors.GREY_400, 
-                        color= colors.BLACK,
-                        border=InputBorder.UNDERLINE,
-                        width= 60,
-                        text_align="center",
-                        value="30")
+                        height=30,
+                        text_align="START",)
+    
 
 
     #GPT-ответы
@@ -605,15 +668,23 @@ def main(page: Page):
                             ]),
                             Row([
                                 Container(width=10),
+                                Text("1) "),
                                 firsPer_text,
+                                firsPer_status_text
+
                             ]),
                             Row([
                                 Container(width=10),
+                                Text("2) "),
                                 secPer_text,
+                                secPer_status_text
+
                             ]),
                             Row([
                                 Container(width=10),
+                                Text("3) "),
                                 thridPer_text,
+                                thridPer_status_text
                             ]),
 
                         ])
@@ -631,13 +702,26 @@ def main(page: Page):
                                     Text("Изменить перерыв: ")
                                 ]),
                                 Row([
-                                    Container(width=10),
-                                    Text("Изменить перерыв: ")
+                                Container(width=5),
+                                Text("↓↓↓ Время в формате(HH:MM:SS): "),
                                 ]),
                                 Row([
                                     Container(width=10),
-                                    Text("Изменить перерыв: ")
+                                    addPer,
+                                    nomerPer
                                 ]),
+                                Row([
+                                    Container(width=50),
+                                    Text("Номер перерыва: ↑↑↑"),
+                                    
+                                ]),
+
+                                Row([
+                                    Container(width=10),
+                                    ElevatedButton(
+                                    "Заменить!", 
+                                    on_click=change_pererivs,
+                                )])
 
 
                             ])
